@@ -628,6 +628,8 @@ td.bar-low {
   margin-top: 0.6rem !important;
   font-size: 0.85rem;
   color: var(--color-text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .thread-heading {
