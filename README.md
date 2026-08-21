@@ -174,7 +174,7 @@ Con los servicios levantados (usando los puertos por defecto):
 
 Video walkthrough (5 min) mostrando el flujo completo: creación de ticket, clasificación con IA, gestión de estado/comentarios, y arquitectura del proyecto.
 
-<!-- PEGAR AQUÍ LA URL QUE GENERA GITHUB AL ARRASTRAR EL VIDEO -->
+https://github.com/user-attachments/assets/f0286a62-af51-464a-bd3a-3f7336ec4fed
 
 ## 11. Capturas de pantalla
 
