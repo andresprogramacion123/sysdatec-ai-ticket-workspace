@@ -43,10 +43,27 @@ function renderAvatar(customerName) {
   els.avatar.style.backgroundColor = avatarColor(customerName);
 }
 
+const SAFE_URL_SCHEMES = ["http:", "https:"];
+
+function isSafeUrl(value) {
+  try {
+    return SAFE_URL_SCHEMES.includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
 function renderAttachment(attachmentUrl) {
   els.attachmentUrl.textContent = "";
   if (!attachmentUrl) {
     els.attachmentUrl.textContent = "Sin adjunto";
+    return;
+  }
+  if (!isSafeUrl(attachmentUrl)) {
+    // Defense in depth: the backend already rejects non-http(s) URLs on
+    // creation, but never render an unsafe href (e.g. javascript:) even if
+    // such data reached the database through another path.
+    els.attachmentUrl.textContent = attachmentUrl;
     return;
   }
   const link = document.createElement("a");

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel
@@ -8,6 +9,8 @@ from sqlmodel import Field, SQLModel
 from app.schemas.comment import CommentRead
 
 TicketStatus = Literal["open", "in_progress", "resolved", "closed"]
+
+ALLOWED_ATTACHMENT_URL_SCHEMES = {"http", "https"}
 
 
 class TicketCreate(SQLModel):
@@ -20,6 +23,18 @@ class TicketCreate(SQLModel):
     def strip_whitespace(cls, value: str) -> str:
         if isinstance(value, str):
             return value.strip()
+        return value
+
+    @field_validator("attachment_url", mode="before")
+    @classmethod
+    def validate_attachment_url(cls, value: str | None) -> str | None:
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        if not value:
+            return None
+        if urlparse(value).scheme not in ALLOWED_ATTACHMENT_URL_SCHEMES:
+            raise ValueError("attachment_url must be an http:// or https:// URL")
         return value
 
 
