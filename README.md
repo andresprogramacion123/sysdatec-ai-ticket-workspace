@@ -5,8 +5,6 @@
 
 AI Ticket Workspace es una aplicación web para la recepción, clasificación automática y seguimiento de tickets operacionales (finanzas, legal, compras y operaciones). Los tickets se crean desde un dashboard, se clasifican automáticamente usando IA (categoría, prioridad y resumen) y se gestionan mediante un flujo de estados con comentarios de seguimiento. Este proyecto fue desarrollado como prueba técnica para Sysdatec Corp.
 
-[![Video demo](https://cdn.loom.com/sessions/thumbnails/9806b0b31e7e40fe9db8692bfc260132-ebfa3d64bfecc5d8-full-play.jpg)](https://www.loom.com/share/9806b0b31e7e40fe9db8692bfc260132)
-
 ## 2. Stack tecnológico
 
 - **Backend:** FastAPI, SQLModel, PostgreSQL, Anthropic SDK (Claude)
@@ -172,7 +170,13 @@ Con los servicios levantados (usando los puertos por defecto):
   | Contraseña | el valor de `POSTGRES_PASSWORD` en tu `.env` |
   | Base de datos | el valor de `POSTGRES_DB` en tu `.env` (por defecto `ai_ticket_workspace`) |
 
-## 10. Capturas de pantalla
+## 10. Video walkthrough
+
+Video walkthrough (5 min) mostrando el flujo completo: creación de ticket, clasificación con IA, gestión de estado/comentarios, y arquitectura del proyecto.
+
+<!-- PEGAR AQUÍ LA URL QUE GENERA GITHUB AL ARRASTRAR EL VIDEO -->
+
+## 11. Capturas de pantalla
 
 **Dashboard** — listado de tickets con resumen de estados, filtros, ordenamiento por columnas y paginación:
 
@@ -194,7 +198,7 @@ Con los servicios levantados (usando los puertos por defecto):
 
 ![Adminer](images/image5.png)
 
-## 11. Checklist de requisitos funcionales
+## 12. Checklist de requisitos funcionales
 
 | Requisito | Cómo está cubierto |
 |---|---|
