@@ -34,3 +34,17 @@ def update_ticket(session: Session, ticket: Ticket, ticket_in: TicketUpdate) -> 
     session.commit()
     session.refresh(ticket)
     return ticket
+
+
+def set_ai_classification(
+    session: Session, ticket: Ticket, category: str, priority: str, ai_summary: str
+) -> Ticket:
+    ticket.category = category
+    ticket.priority = priority
+    ticket.ai_summary = ai_summary
+    ticket.updated_at = datetime.now(timezone.utc)
+
+    session.add(ticket)
+    session.commit()
+    session.refresh(ticket)
+    return ticket

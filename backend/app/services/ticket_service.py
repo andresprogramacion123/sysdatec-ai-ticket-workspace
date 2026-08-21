@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import HTTPException, status
@@ -9,10 +10,36 @@ from app.models.comment_model import Comment
 from app.models.ticket_model import Ticket
 from app.schemas.comment import CommentCreate
 from app.schemas.ticket import TicketCreate, TicketUpdate
+from app.services import ai_classifier_service
+
+logger = logging.getLogger(__name__)
 
 
 def create_ticket(session: Session, ticket_in: TicketCreate) -> Ticket:
-    return ticket_crud.create_ticket(session, ticket_in)
+    ticket = ticket_crud.create_ticket(session, ticket_in)
+
+    try:
+        classification = ai_classifier_service.classify_ticket(
+            customer_name=ticket.customer_name,
+            request_text=ticket.request_text,
+            attachment_url=ticket.attachment_url,
+        )
+    except Exception:
+        logger.warning(
+            "AI classification failed for ticket %s; leaving category/priority/"
+            "ai_summary as null",
+            ticket.id,
+            exc_info=True,
+        )
+        return ticket
+
+    return ticket_crud.set_ai_classification(
+        session,
+        ticket,
+        category=classification["category"],
+        priority=classification["priority"],
+        ai_summary=classification["summary"],
+    )
 
 
 def get_all_tickets(session: Session) -> list[Ticket]:

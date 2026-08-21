@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalle de ticket - AI Ticket Workspace</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-text">
+        <span class="logo-badge" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"
+            />
+            <path d="M13 5v2" />
+            <path d="M13 11v2" />
+            <path d="M13 17v2" />
+          </svg>
+        </span>
+        <div class="app-header-titles">
+          <h1>Detalle del ticket</h1>
+        </div>
+      </div>
+      <a class="back-button" href="index.html">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M19 12H5" />
+          <path d="M12 19l-7-7 7-7" />
+        </svg>
+        Volver al dashboard
+      </a>
+    </header>
+
+    <main class="ticket-layout">
+      <p class="error-message" id="load-error"></p>
+
+      <div class="ticket-columns" id="ticket-detail" hidden>
+        <aside class="ticket-sidebar">
+          <section class="card client-card">
+            <div class="avatar-row">
+              <div class="avatar" id="client-avatar"></div>
+              <div>
+                <p class="client-name" id="detail-customer-name"></p>
+                <p class="client-meta" id="detail-created-at"></p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card ai-card">
+            <h3>Clasificación IA</h3>
+            <dl class="sidebar-grid">
+              <dt>Categoría</dt>
+              <dd id="detail-category"></dd>
+
+              <dt>Prioridad</dt>
+              <dd id="detail-priority"></dd>
+
+              <dt>Resumen</dt>
+              <dd id="detail-ai-summary" class="preserve-lines"></dd>
+            </dl>
+          </section>
+
+          <section class="card management-card">
+            <div class="management-header">
+              <h3>Gestión</h3>
+              <span class="badge" id="status-badge"></span>
+            </div>
+            <div class="field">
+              <label for="status-select">Estado</label>
+              <select id="status-select">
+                <option value="open">Abierto</option>
+                <option value="in_progress">En progreso</option>
+                <option value="resolved">Resuelto</option>
+                <option value="closed">Cerrado</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="owner-input">Responsable</label>
+              <input type="text" id="owner-input" placeholder="Sin asignar" />
+            </div>
+            <button id="save-button" type="button" class="btn btn-primary btn-block">
+              Guardar cambios
+            </button>
+            <p class="error-message" id="save-error"></p>
+            <p class="success-message" id="save-success"></p>
+            <p class="updated-meta" id="detail-updated-at"></p>
+          </section>
+        </aside>
+
+        <section class="card thread-panel">
+          <div class="original-request">
+            <p class="original-request-label">Solicitud original</p>
+            <p id="detail-request-text" class="preserve-lines"></p>
+            <p class="attachment-line">
+              Adjunto: <span id="detail-attachment-url"></span>
+            </p>
+          </div>
+
+          <h3 class="thread-heading">Comentarios</h3>
+          <div class="comments-scroll">
+            <ul class="comments-list" id="comments-list"></ul>
+          </div>
+
+          <form id="comment-form" class="comment-form">
+            <div class="field">
+              <label for="comment-content">Agregar comentario</label>
+              <textarea id="comment-content" name="content" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Agregar comentario</button>
+            <p class="error-message" id="comment-error"></p>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="js/ticket.js"></script>
+  </body>
+</html>
