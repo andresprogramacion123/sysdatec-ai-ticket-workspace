@@ -7,7 +7,7 @@ AI Ticket Workspace es una aplicación web para la recepción, clasificación au
 
 ## 2. Stack tecnológico
 
-- **Backend:** FastAPI, SQLModel, PostgreSQL, Anthropic SDK (Claude)
+- **Backend:** FastAPI, SQLModel, PostgreSQL, Anthropic SDK (Claude), `requests`, `beautifulsoup4`, `python-docx`, `openpyxl` (fetch y extracción de contenido de adjuntos)
 - **Frontend:** HTML/CSS/JS vanilla (sin frameworks)
 - **Infraestructura:** Docker, Docker Compose, Adminer
 - **Otras herramientas usadas en el desarrollo:** Playwright (pruebas E2E del frontend en navegador real durante el desarrollo, no forma parte del stack de producción)
@@ -42,7 +42,10 @@ PostgreSQL
 2. El router (`routers/ticket.py`) valida el payload contra el schema `TicketCreate` (incluyendo `min_length=1` con `.strip()` para rechazar nombres/textos vacíos o solo espacios) y lo pasa a `ticket_service.create_ticket`.
 3. El service persiste el ticket inicial vía `crud/ticket.py`, con `status="open"` y `category`/`priority`/`ai_summary` en `null`.
 4. El service llama a `ai_classifier_service.classify_ticket`, que usa el SDK de Anthropic con **tool-use forzado** (function calling con JSON Schema y `tool_choice={"type": "tool", "name": "classify_ticket"}`) para garantizar que `category`/`priority` vengan siempre dentro de los valores permitidos (`Finance`/`Legal`/`Procurement`/`Operations` y `High`/`Medium`/`Low`), evitando que el modelo se desvíe del formato esperado incluso ante manipulación del texto del ticket (prompt injection).
-5. `attachment_url`, si viene, se incluye como referencia textual dentro del prompt enviado al modelo (por ejemplo `Attachment URL: https://...`). No se descarga ni se lee el contenido del adjunto — el modelo solo ve la URL como dato de contexto adicional.
+5. Si `attachment_url` viene, `ai_classifier_service` llama a `attachment_parser_service.extract_attachment_content`, que hace un fetch de la URL con timeout de 5s y un límite de descarga de 10MB (streaming, se aborta si se excede), respetando el charset declarado en el header `Content-Type` cuando existe. Según el tipo de contenido detectado:
+   - **HTML, texto plano, Word (`.docx`) o Excel (`.xlsx`)** se extraen como texto (máx. 1500 caracteres) y se agregan al prompt como contexto adicional.
+   - **PDF e imágenes (máx. 5MB)** se envían como content blocks nativos (`document`/`image` respectivamente) directamente al modelo en la misma petición, que los interpreta visualmente — esto incluye PDFs escaneados sin capa de texto extraíble, sin necesidad de OCR propio.
+   - Si el fetch falla, el tipo de contenido no está soportado, o excede los límites de tamaño correspondientes, se ignora silenciosamente y el ticket se clasifica igual que si no hubiera adjunto (fallback no bloqueante).
 6. Si la clasificación falla por cualquier motivo (`ANTHROPIC_API_KEY` inválida o no configurada, timeout, error del proveedor, respuesta sin `tool_use`, o valores fuera del enum), el ticket se guarda igual con `category`/`priority`/`ai_summary` en `null`, se registra un log de warning, y el endpoint responde `201` normalmente — nunca se tumba la creación del ticket por un fallo de IA.
 7. El resultado final (clasificado o no) se persiste vía `crud/ticket.set_ai_classification` y se devuelve al frontend en la respuesta del `POST /tickets`.
 
@@ -58,10 +61,16 @@ PostgreSQL
 - **Modelo usado:** Claude (Anthropic), vía tool-use forzado (function calling) en vez de parseo de texto libre, para garantizar que la salida siempre cumpla el schema esperado.
 - **Qué hace:** genera `category`, `priority` y un `summary` (resumen de 1-2 líneas, siempre en español independientemente del idioma del `request_text` original) a partir de `customer_name`, `request_text` y `attachment_url`.
 - **Manejo de fallos:** controlado (degradación elegante) — si la IA no está disponible o falla, el ticket se crea igual sin clasificar, sin bloquear al usuario ni devolver un error al endpoint.
+- **Enriquecimiento de contexto vía adjuntos:** si el ticket incluye `attachment_url`, su contenido se descarga y se incorpora a la clasificación (`attachment_parser_service.py`). Formatos soportados: HTML, texto plano, Word (`.docx`), Excel (`.xlsx`), PDF e imágenes. Para PDF e imágenes se usa la capacidad nativa de comprensión visual de Claude (content blocks tipo `document`/`image`) en vez de extracción de texto tradicional (no se usa `pypdf` ni OCR propio), lo que permite leer también PDFs escaneados — el modelo interpreta cada página como imagen internamente. Para HTML/texto/Word/Excel sí se extrae texto plano (`BeautifulSoup`, `python-docx`, `openpyxl`), porque no existe un content block nativo para esos formatos en la API.
 
 ## 7. Decisiones de diseño relevantes
 
-- `attachment_url` se trata como referencia textual (URL), no como upload de archivo, dado el alcance del challenge; se pasa como dato de contexto adicional al prompt del clasificador, sin descargar ni leer su contenido.
+- `attachment_url` sigue siendo un campo de URL —no un upload directo de archivo desde el frontend, dado el alcance del challenge—, pero su contenido sí se descarga y se procesa para enriquecer la clasificación (`attachment_parser_service.py`). Límites y comportamiento:
+  - Descarga: timeout de 5s, máx. 10MB (streaming, se aborta si se excede).
+  - PDF/imagen enviados como content block nativo a la API: máx. 5MB.
+  - Texto extraído (HTML/texto plano/Word/Excel): máx. 1500 caracteres.
+  - Tipos no soportados o cualquier fallo (URL caída, timeout, tamaño excedido) caen en un fallback silencioso: el ticket se clasifica exactamente igual que si no hubiera adjunto, sin afectar la creación del ticket.
+  - Limitación consciente: los 1500 caracteres de texto extraído de HTML son los primeros del texto plano ya renderizado de la página (sin aislar el contenido principal de menús/navegación); en páginas largas con mucho boilerplate antes del contenido relevante, la información importante podría no capturarse dentro de ese límite.
 - Los comentarios se implementan como un log append-only (solo creación), siguiendo el patrón estándar de sistemas de tickets.
 - El campo `owner` es texto libre sin sistema de autenticación, ya que el alcance del challenge no especifica gestión de usuarios.
 - `category`, `priority` y `status` se mantienen en inglés como valores internos del sistema (alineado con el enunciado original de la prueba), mientras que el frontend traduce estos valores al español únicamente en la capa de presentación (tabla, filtros, detalle), sin afectar el contrato de datos con el backend.
