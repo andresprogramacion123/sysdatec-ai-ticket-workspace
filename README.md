@@ -1,6 +1,47 @@
 # Prueba técnica Sysdatec - Desarrollador de Software AI First
 ### Julian Andres Montoya Carvajal
 
+## Instrucciones etapa de desarrollo
+
+Preferiblemente trabajar en Ubuntu 22.04 LTS (puede utilizar WSL2 en Windows para instalar Ubuntu).
+
+Tener instalado Docker y Docker Compose para la orquestación de los servicios: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
+
+**Puertos ocupados:** si `docker compose up` falla con un error de tipo `address already in use` en el puerto 5432 (PostgreSQL) o 8000/8080 (app/Nginx), significa que otro proceso ya está usando ese puerto en el host. Es común que ocurra con un PostgreSQL instalado nativamente en el sistema. En Ubuntu, se libera con:
+
+```bash
+sudo systemctl stop postgresql
+sudo systemctl disable postgresql
+```
+
+**Comandos de limpieza**
+
+Si algo falla o se quiere reiniciar todo desde cero:
+
+```bash
+sudo docker compose down
+```
+
+Detiene y elimina los contenedores (mantiene los volúmenes, es decir, los datos de la base de datos).
+
+```bash
+sudo docker compose down -v
+```
+
+Igual al anterior, pero además borra los volúmenes (se pierden los datos de la base de datos).
+
+```bash
+sudo docker compose down --rmi all
+```
+
+Borra también las imágenes construidas por el proyecto.
+
+```bash
+sudo docker builder prune -a -f
+```
+
+Limpia la caché de build de Docker.
+
 ## 1. Descripción del proyecto
 
 AI Ticket Workspace es una aplicación web para la recepción, clasificación automática y seguimiento de tickets operacionales (finanzas, legal, compras y operaciones). Los tickets se crean desde un dashboard, se clasifican automáticamente usando IA (categoría, prioridad y resumen) y se gestionan mediante un flujo de estados con comentarios de seguimiento. Este proyecto fue desarrollado como prueba técnica para Sysdatec Corp.
@@ -57,7 +98,7 @@ PostgreSQL
 
 - **Modelo usado:** Claude (Anthropic), vía tool-use forzado (function calling) en vez de parseo de texto libre, para garantizar que la salida siempre cumpla el schema esperado.
 - **Qué hace:** genera `category`, `priority` y un `summary` (resumen de 1-2 líneas, siempre en español independientemente del idioma del `request_text` original) a partir de `customer_name`, `request_text` y `attachment_url`.
-- **Manejo de fallos:** gracioso — si la IA no está disponible o falla, el ticket se crea igual sin clasificar, sin bloquear al usuario ni devolver un error al endpoint.
+- **Manejo de fallos:** controlado (degradación elegante) — si la IA no está disponible o falla, el ticket se crea igual sin clasificar, sin bloquear al usuario ni devolver un error al endpoint.
 
 ## 7. Decisiones de diseño relevantes
 
@@ -100,7 +141,6 @@ PostgreSQL
    | `POSTGRES_PORT`      | Puerto donde se expone Postgres en el host                                    | `5432`                    |
    | `BACKEND_PORT`       | Puerto donde se expone la API de FastAPI en el host                           | `8000`                    |
    | `ANTHROPIC_API_KEY`  | **Requerida** para que la clasificación con IA funcione. Sin ella, los tickets se crean igual pero sin `category`/`priority`/`ai_summary`. | *(vacío)* |
-   | `OPENAI_API_KEY`     | Reservada para un posible proveedor de IA alternativo; no se usa actualmente en el código. | *(vacío)* |
    | `FRONTEND_PORT`      | Puerto donde se expone el frontend (nginx) en el host                         | `80`                      |
    | `ADMINER_PORT`       | Puerto donde se expone Adminer en el host                                     | `8080`                    |
 
@@ -119,9 +159,6 @@ Con los servicios levantados (usando los puertos por defecto):
 - **Frontend:** [http://localhost](http://localhost)
 - **Backend docs (Swagger/OpenAPI):** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Adminer:** [http://localhost:8080](http://localhost:8080)
-  - Sistema: `PostgreSQL`
-  - Servidor: `postgres` (nombre del servicio en la red de Docker, no `localhost`)
-  - Usuario / Password / Base de datos: los valores configurados en `.env` (`POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`)
 
 ## 10. Capturas de pantalla
 
