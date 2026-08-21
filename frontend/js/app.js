@@ -35,6 +35,24 @@ const STATUS_ICON_COLORS = {
 const PRIORITY_RANK = { High: 3, Medium: 2, Low: 1 };
 const STATUS_ORDER = { open: 0, in_progress: 1, resolved: 2, closed: 3 };
 
+// Mirrors the accent colors used by the status/category badges elsewhere
+// in the dashboard (see .badge-status-* and .badge-priority-* in style.css).
+const STATUS_CHART_COLORS = {
+  open: "#12172B",
+  in_progress: "#FFC145",
+  resolved: "#4ECDC4",
+  closed: "#5B6478",
+};
+
+const CATEGORY_CHART_COLORS = {
+  Finance: "#FF6B35",
+  Legal: "#12172B",
+  Procurement: "#4ECDC4",
+  Operations: "#FFC145",
+};
+
+const CHART_FONT = { family: "Inter, system-ui, sans-serif", size: 12 };
+
 const modalOverlay = document.getElementById("modal-overlay");
 const openModalButton = document.getElementById("open-modal-button");
 const closeModalButton = document.getElementById("modal-close-button");
@@ -214,6 +232,98 @@ function renderStatusSummary(tickets) {
   });
 }
 
+// `Chart` is provided globally by the CDN <script> tag in index.html
+// (loaded before this module), not imported — no build step, no npm package.
+let statusChart = null;
+let categoryChart = null;
+
+function computeStatusCounts(tickets) {
+  const counts = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+  for (const ticket of tickets) {
+    if (counts[ticket.status] !== undefined) counts[ticket.status] += 1;
+  }
+  return counts;
+}
+
+function computeCategoryCounts(tickets) {
+  const counts = { Finance: 0, Legal: 0, Procurement: 0, Operations: 0 };
+  for (const ticket of tickets) {
+    if (counts[ticket.category] !== undefined) counts[ticket.category] += 1;
+  }
+  return counts;
+}
+
+function renderStatusChart(tickets) {
+  const counts = computeStatusCounts(tickets);
+  const statuses = Object.keys(STATUS_LABELS);
+  const data = statuses.map((status) => counts[status]);
+  const labels = statuses.map((status) => STATUS_LABELS[status]);
+  const colors = statuses.map((status) => STATUS_CHART_COLORS[status]);
+
+  if (!statusChart) {
+    statusChart = new Chart(document.getElementById("status-chart"), {
+      type: "doughnut",
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { font: CHART_FONT, boxWidth: 12, padding: 10 },
+          },
+        },
+      },
+    });
+    return;
+  }
+
+  statusChart.data.labels = labels;
+  statusChart.data.datasets[0].data = data;
+  statusChart.update();
+}
+
+function renderCategoryChart(tickets) {
+  const counts = computeCategoryCounts(tickets);
+  const categories = Object.keys(CATEGORY_LABELS);
+  const data = categories.map((category) => counts[category]);
+  const labels = categories.map((category) => CATEGORY_LABELS[category]);
+  const colors = categories.map((category) => CATEGORY_CHART_COLORS[category]);
+
+  if (!categoryChart) {
+    categoryChart = new Chart(document.getElementById("category-chart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: colors, borderRadius: 4, maxBarThickness: 40 }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: CHART_FONT }, grid: { display: false } },
+          y: {
+            beginAtZero: true,
+            ticks: { font: CHART_FONT, precision: 0 },
+            grid: { color: "#E3E5EC" },
+          },
+        },
+      },
+    });
+    return;
+  }
+
+  categoryChart.data.labels = labels;
+  categoryChart.data.datasets[0].data = data;
+  categoryChart.update();
+}
+
+function renderCharts(tickets) {
+  renderStatusChart(tickets);
+  renderCategoryChart(tickets);
+}
+
 function matchesFilters(ticket) {
   if (searchQuery && !normalizeText(ticket.customer_name).includes(normalizeText(searchQuery))) {
     return false;
@@ -290,6 +400,7 @@ async function loadTickets() {
   try {
     allTickets = await api.listTickets();
     renderStatusSummary(allTickets);
+    renderCharts(allTickets);
     renderTicketsPage();
   } catch (err) {
     ticketsError.textContent = err.message;

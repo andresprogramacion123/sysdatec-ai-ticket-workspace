@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Ticket Workspace</title>
     <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"
+      integrity="sha512-WoViKhKD4qI2WruSZqv9+kvM4WfFhUMQCLN4QlDTt5aU56fLQy2gYoxWIqlEnXqJy/+Ac5q/hk1oWfqnMDhwMA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
   </head>
   <body>
     <header class="app-header">
@@ -45,6 +51,21 @@
           <p class="status-summary" id="status-summary"></p>
         </div>
         <p class="error-message" id="tickets-error"></p>
+
+        <div class="charts-row">
+          <div class="card chart-card">
+            <h3 class="chart-title">Tickets por estado</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="status-chart"></canvas>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <h3 class="chart-title">Tickets por categoría</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="category-chart"></canvas>
+            </div>
+          </div>
+        </div>
 
         <div class="filter-bar">
           <div class="filter-field filter-search">
