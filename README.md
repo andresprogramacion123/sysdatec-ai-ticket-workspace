@@ -5,6 +5,8 @@
 
 AI Ticket Workspace es una aplicación web para la recepción, clasificación automática y seguimiento de tickets operacionales (finanzas, legal, compras y operaciones). Los tickets se crean desde un dashboard, se clasifican automáticamente usando IA (categoría, prioridad y resumen) y se gestionan mediante un flujo de estados con comentarios de seguimiento. Este proyecto fue desarrollado como prueba técnica para Sysdatec Corp.
 
+[![Video demo](https://cdn.loom.com/sessions/thumbnails/9806b0b31e7e40fe9db8692bfc260132-ebfa3d64bfecc5d8-full-play.jpg)](https://www.loom.com/share/9806b0b31e7e40fe9db8692bfc260132)
+
 ## 2. Stack tecnológico
 
 - **Backend:** FastAPI, SQLModel, PostgreSQL, Anthropic SDK (Claude)
