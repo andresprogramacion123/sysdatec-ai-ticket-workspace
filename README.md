@@ -1,47 +1,6 @@
 # Prueba técnica Sysdatec - Desarrollador de Software AI First
 ### Julian Andres Montoya Carvajal
 
-## Instrucciones etapa de desarrollo
-
-Preferiblemente trabajar en Ubuntu 22.04 LTS (puede utilizar WSL2 en Windows para instalar Ubuntu).
-
-Tener instalado Docker y Docker Compose para la orquestación de los servicios: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
-
-**Puertos ocupados:** si `docker compose up` falla con un error de tipo `address already in use` en el puerto 5432 (PostgreSQL) o 8000/8080 (app/Nginx), significa que otro proceso ya está usando ese puerto en el host. Es común que ocurra con un PostgreSQL instalado nativamente en el sistema. En Ubuntu, se libera con:
-
-```bash
-sudo systemctl stop postgresql
-sudo systemctl disable postgresql
-```
-
-**Comandos de limpieza**
-
-Si algo falla o se quiere reiniciar todo desde cero:
-
-```bash
-sudo docker compose down
-```
-
-Detiene y elimina los contenedores (mantiene los volúmenes, es decir, los datos de la base de datos).
-
-```bash
-sudo docker compose down -v
-```
-
-Igual al anterior, pero además borra los volúmenes (se pierden los datos de la base de datos).
-
-```bash
-sudo docker compose down --rmi all
-```
-
-Borra también las imágenes construidas por el proyecto.
-
-```bash
-sudo docker builder prune -a -f
-```
-
-Limpia la caché de build de Docker.
-
 ## 1. Descripción del proyecto
 
 AI Ticket Workspace es una aplicación web para la recepción, clasificación automática y seguimiento de tickets operacionales (finanzas, legal, compras y operaciones). Los tickets se crean desde un dashboard, se clasifican automáticamente usando IA (categoría, prioridad y resumen) y se gestionan mediante un flujo de estados con comentarios de seguimiento. Este proyecto fue desarrollado como prueba técnica para Sysdatec Corp.
@@ -152,6 +111,47 @@ PostgreSQL
 
    Esto levanta 4 contenedores: `postgres`, `backend`, `frontend` y `adminer`. Las tablas se crean automáticamente al arrancar el backend (no se requiere ejecutar migraciones).
 
+### Troubleshooting
+
+Preferiblemente trabajar en Ubuntu 22.04 LTS (puede utilizar WSL2 en Windows para instalar Ubuntu).
+
+Tener instalado Docker y Docker Compose para la orquestación de los servicios: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
+
+**Puertos ocupados:** si `docker compose up` falla con un error de tipo `address already in use` en el puerto 5432 (PostgreSQL) o 8000/8080 (app/Nginx), significa que otro proceso ya está usando ese puerto en el host. Es común que ocurra con un PostgreSQL instalado nativamente en el sistema. En Ubuntu, se libera con:
+
+```bash
+sudo systemctl stop postgresql
+sudo systemctl disable postgresql
+```
+
+**Comandos de limpieza**
+
+Si algo falla o se quiere reiniciar todo desde cero:
+
+```bash
+sudo docker compose down
+```
+
+Detiene y elimina los contenedores (mantiene los volúmenes, es decir, los datos de la base de datos).
+
+```bash
+sudo docker compose down -v
+```
+
+Igual al anterior, pero además borra los volúmenes (se pierden los datos de la base de datos).
+
+```bash
+sudo docker compose down --rmi all
+```
+
+Borra también las imágenes construidas por el proyecto.
+
+```bash
+sudo docker builder prune -a -f
+```
+
+Limpia la caché de build de Docker.
+
 ## 9. Enlaces disponibles
 
 Con los servicios levantados (usando los puertos por defecto):
@@ -159,6 +159,16 @@ Con los servicios levantados (usando los puertos por defecto):
 - **Frontend:** [http://localhost](http://localhost)
 - **Backend docs (Swagger/OpenAPI):** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Adminer:** [http://localhost:8080](http://localhost:8080)
+
+  Credenciales de conexión (usa los valores que hayas puesto en tu propio `.env`; estos son los valores por defecto de `.env.example`):
+
+  | Campo | Valor |
+  |---|---|
+  | Sistema | `PostgreSQL` |
+  | Servidor | `postgres` (nombre del servicio en `docker-compose.yml`, no `localhost`) |
+  | Usuario | el valor de `POSTGRES_USER` en tu `.env` (por defecto `postgres`) |
+  | Contraseña | el valor de `POSTGRES_PASSWORD` en tu `.env` |
+  | Base de datos | el valor de `POSTGRES_DB` en tu `.env` (por defecto `ai_ticket_workspace`) |
 
 ## 10. Capturas de pantalla
 
@@ -181,3 +191,15 @@ Con los servicios levantados (usando los puertos por defecto):
 **Administrador de base de datos (Adminer)** — acceso a PostgreSQL en `http://localhost:8080`:
 
 ![Adminer](images/image5.png)
+
+## 11. Checklist de requisitos funcionales
+
+| Requisito | Cómo está cubierto |
+|---|---|
+| Levantar el proyecto con `docker compose up --build` | `docker-compose.yml` orquesta 4 servicios (`postgres`, `backend`, `frontend`, `adminer`); las tablas se crean automáticamente al arrancar el backend vía `SQLModel.metadata.create_all` en el `lifespan` de FastAPI, sin migraciones manuales. |
+| Crear un ticket nuevo desde la UI | Modal "+ Nuevo ticket" en el dashboard (`index.html`), con campos `customer_name`, `request_text` y `attachment_url` opcional → `POST /tickets`. |
+| Disparar la clasificación de IA con una API key válida | Al crear el ticket, `ticket_service.create_ticket` llama automáticamente a `ai_classifier_service.classify_ticket` (Claude, tool-use forzado); `category`, `priority` y `ai_summary` quedan visibles en la card "Clasificación IA" de la vista de detalle. |
+| Ver el ticket guardado en la base de datos | Vía Adminer (`http://localhost:8080`), inspeccionando las tablas `tickets`/`comments`; o vía `GET /tickets` y `GET /tickets/{id}` en la documentación Swagger (`/docs`). |
+| Actualizar status, owner y comentarios del ticket | Vista de detalle (`ticket.html`): selector de Estado + input de Responsable + botón "Guardar cambios" (`PATCH /tickets/{id}`); formulario "Agregar comentario" en el hilo (`POST /tickets/{id}/comments`). |
+| Explicar la arquitectura principal y el flujo de datos | Secciones [3. Arquitectura del backend](#3-arquitectura-del-backend-3-capas) y [4. Flujo de datos completo](#4-flujo-de-datos-completo-creación-y-clasificación-de-un-ticket) de este README. |
+| Revisar el README y el proceso de setup | Sección [8. Setup e instrucciones de ejecución](#8-setup-e-instrucciones-de-ejecución), con prerequisitos, tabla de variables de entorno, comando único de arranque y troubleshooting. |
