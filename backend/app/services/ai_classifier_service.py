@@ -1,6 +1,11 @@
+import logging
+
 import anthropic
 
 from app.config.config import settings
+from app.services.attachment_parser_service import extract_attachment_content
+
+logger = logging.getLogger(__name__)
 
 MODEL = "claude-sonnet-5"
 
@@ -56,25 +61,55 @@ def classify_ticket(
     if attachment_url:
         ticket_details += f"\nAttachment URL: {attachment_url}"
 
+    attachment_content = None
+    if attachment_url:
+        try:
+            attachment_content = extract_attachment_content(attachment_url)
+        except Exception:
+            logger.warning(
+                "Attachment extraction raised unexpectedly for %s",
+                attachment_url,
+                exc_info=True,
+            )
+            attachment_content = None
+
+    if attachment_content and attachment_content["type"] == "text":
+        ticket_details += (
+            "\n\nContenido extraído del adjunto (puede estar recortado):\n"
+            f"{attachment_content['content']}"
+        )
+
+    instruction_text = (
+        "Classify the following support ticket using the classify_ticket "
+        "tool. The request may be written in any language, but the "
+        "'summary' field must ALWAYS be written in Spanish, regardless of "
+        "the original language of the request. The 'category' and "
+        "'priority' fields must remain the exact English enum values.\n\n"
+        f"{ticket_details}"
+    )
+
+    if attachment_content and attachment_content["type"] in ("pdf", "image"):
+        block_type = "document" if attachment_content["type"] == "pdf" else "image"
+        user_content = [
+            {
+                "type": block_type,
+                "source": {
+                    "type": "base64",
+                    "media_type": attachment_content["media_type"],
+                    "data": attachment_content["data"],
+                },
+            },
+            {"type": "text", "text": instruction_text},
+        ]
+    else:
+        user_content = instruction_text
+
     message = client.messages.create(
         model=MODEL,
         max_tokens=1024,
         tools=[CLASSIFY_TICKET_TOOL],
         tool_choice={"type": "tool", "name": "classify_ticket"},
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    "Classify the following support ticket using the "
-                    "classify_ticket tool. The request may be written in "
-                    "any language, but the 'summary' field must ALWAYS be "
-                    "written in Spanish, regardless of the original "
-                    "language of the request. The 'category' and "
-                    "'priority' fields must remain the exact English enum "
-                    f"values.\n\n{ticket_details}"
-                ),
-            }
-        ],
+        messages=[{"role": "user", "content": user_content}],
     )
 
     tool_use_block = next(
